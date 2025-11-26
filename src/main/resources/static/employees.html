@@ -1,141 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8"/>
     <title>Employee Management</title>
-    <!-- Default (light) theme -->
-    <link id="themeStylesheet" rel="stylesheet" href="/css/style.css">
+
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /* Modal backdrop */
+        .modal-bg {
+            background: rgba(0,0,0,0.55);
+        }
+    </style>
 </head>
+<body class="bg-gray-100 p-8 font-sans">
 
-<body>
+<div class="max-w-5xl mx-auto bg-white p-6 rounded-xl shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Employee Management</h1>
 
-<div class="container">
-    <button class="toggle-dark" onclick="toggleDarkMode()">🌙</button>
+    <!-- Add Button -->
+    <button onclick="openAddModal()"
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition">
+        + Add Employee
+    </button>
 
-    <h1>Employee Management</h1>
-    <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
-
-    <table>
-        <thead>
-        <tr>
-            <th>ID</th><th>First</th><th>Last</th><th>Email</th><th>Actions</th>
-        </tr>
-        </thead>
-        <tbody id="employeeTable"></tbody>
-    </table>
+    <!-- Employee Table -->
+    <div class="mt-6 overflow-x-auto">
+        <table class="w-full border-collapse">
+            <thead>
+            <tr class="bg-gray-200 text-left">
+                <th class="p-3">ID</th>
+                <th class="p-3">First Name</th>
+                <th class="p-3">Last Name</th>
+                <th class="p-3">Email</th>
+                <th class="p-3 text-center">Actions</th>
+            </tr>
+            </thead>
+            <tbody id="employeeTable"></tbody>
+        </table>
+    </div>
 </div>
 
-<!-- Modal -->
-<div class="modal" id="modal">
-    <div class="modal-content">
-        <h2 id="modal-title">Add Employee</h2>
-        <input id="firstNameInput" class="input" placeholder="First Name">
-        <input id="lastNameInput" class="input" placeholder="Last Name">
-        <input id="emailInput" class="input" placeholder="Email">
+<!-- MODAL -->
+<div id="modal" class="hidden fixed inset-0 flex justify-center items-center modal-bg">
+    <div class="bg-white p-6 rounded-xl w-96 shadow-lg">
+        <h2 id="modalTitle" class="text-xl font-bold mb-4">Add Employee</h2>
 
-        <div class="flex">
-            <button class="btn" onclick="closeModal()">Cancel</button>
-            <button class="btn btn-primary" id="saveBtn">Save</button>
+        <input id="firstNameInput" placeholder="First Name"
+               class="w-full mb-3 p-2 border rounded"/>
+        <input id="lastNameInput" placeholder="Last Name"
+               class="w-full mb-3 p-2 border rounded"/>
+        <input id="emailInput" placeholder="Email"
+               class="w-full mb-4 p-2 border rounded"/>
+
+        <div class="flex justify-between">
+            <button onclick="closeModal()"
+                    class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+                Cancel
+            </button>
+
+            <button id="saveBtn"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Save
+            </button>
         </div>
     </div>
 </div>
 
-<script src="/js/theme.js"></script>
 <script>
     const API = "/api/employees";
     let editId = null;
 
-    // Load employees
+    // Load data
     window.onload = loadEmployees;
 
     function loadEmployees() {
         fetch(API)
             .then(res => res.json())
             .then(data => {
-                const table = document.getElementById("employeeTable");
+                const table = document.querySelector("#employeeTable");
                 table.innerHTML = "";
+
                 data.forEach(emp => {
                     table.innerHTML += `
-                    <tr>
-                        <td data-label="ID">${emp.id}</td>
-                        <td data-label="First">${emp.firstName}</td>
-                        <td data-label="Last">${emp.lastName}</td>
-                        <td data-label="Email">${emp.email}</td>
-                        <td data-label="Actions">
-                            <button class="btn btn-primary" onclick="openEditModal(${emp.id}, '${emp.firstName}', '${emp.lastName}', '${emp.email}')">Edit</button>
-                            <button class="btn btn-danger" onclick="deleteEmployee(${emp.id})">Delete</button>
-                        </td>
-                    </tr>
+                        <tr class="border-b">
+                            <td class="p-3">${emp.id}</td>
+                            <td class="p-3">${emp.firstName}</td>
+                            <td class="p-3">${emp.lastName}</td>
+                            <td class="p-3">${emp.email}</td>
+                            <td class="p-3 text-center">
+                                <button class="text-blue-600 mr-3" onclick="openEditModal(${emp.id}, '${emp.firstName}', '${emp.lastName}', '${emp.email}')">Edit</button>
+                                <button class="text-red-600" onclick="deleteEmployee(${emp.id})">Delete</button>
+                            </td>
+                        </tr>
                     `;
                 });
             });
     }
 
+    /* Modal Controls */
     function openAddModal() {
         editId = null;
-        document.getElementById("modal-title").textContent = "Add Employee";
+        document.getElementById("modalTitle").innerText = "Add Employee";
         document.getElementById("firstNameInput").value = "";
         document.getElementById("lastNameInput").value = "";
         document.getElementById("emailInput").value = "";
+        document.getElementById("modal").classList.remove("hidden");
+
         document.getElementById("saveBtn").onclick = addEmployee;
-        document.getElementById("modal").style.display = "flex";
     }
 
-    function openEditModal(id, fn, ln, em) {
+    function openEditModal(id, fn, ln, email) {
         editId = id;
-        document.getElementById("modal-title").textContent = "Edit Employee";
+        document.getElementById("modalTitle").innerText = "Edit Employee";
         document.getElementById("firstNameInput").value = fn;
         document.getElementById("lastNameInput").value = ln;
-        document.getElementById("emailInput").value = em;
+        document.getElementById("emailInput").value = email;
+        document.getElementById("modal").classList.remove("hidden");
+
         document.getElementById("saveBtn").onclick = updateEmployee;
-        document.getElementById("modal").style.display = "flex";
     }
 
     function closeModal() {
-        document.getElementById("modal").style.display = "none";
+        document.getElementById("modal").classList.add("hidden");
     }
 
+    /* CRUD FUNCTIONS */
+
+    // Add
     function addEmployee() {
         const firstName = document.getElementById("firstNameInput").value;
         const lastName = document.getElementById("lastNameInput").value;
         const email = document.getElementById("emailInput").value;
 
         fetch(API, {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({firstName, lastName, email})
-        }).then(() => {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ firstName, lastName, email })
+        })
+        .then(() => {
             closeModal();
             loadEmployees();
         });
     }
 
+    // Update
     function updateEmployee() {
         const firstName = document.getElementById("firstNameInput").value;
         const lastName = document.getElementById("lastNameInput").value;
         const email = document.getElementById("emailInput").value;
 
         fetch(`${API}/${editId}`, {
-            method:"PUT",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({firstName, lastName, email})
-        }).then(() => {
+            method: "PUT",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ firstName, lastName, email })
+        })
+        .then(() => {
             closeModal();
             loadEmployees();
         });
     }
 
+    // Delete
     function deleteEmployee(id) {
-        fetch(`${API}/${id}`, { method:"DELETE" })
+        fetch(`${API}/${id}`, { method: "DELETE" })
             .then(() => loadEmployees());
-    }
-
-    function toggleDarkMode() {
-        document.body.classList.toggle("dark");
     }
 </script>
 
 </body>
 </html>
-
