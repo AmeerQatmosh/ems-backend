@@ -1,106 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Employee CRUD App</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        table, th, td { border: 1px solid #ccc; }
-        th, td { padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
-        input, button { padding: 8px; margin: 5px; }
-        .form-container { margin-top: 20px; }
-    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Management</title>
+    <!-- Default (light) theme -->
+    <link id="themeStylesheet" rel="stylesheet" href="/css/style.css">
 </head>
+
 <body>
 
-<h2>Employee Management</h2>
+<div class="container">
+    <button class="toggle-dark" onclick="toggleDarkMode()">🌙</button>
 
-<!-- ADD EMPLOYEE FORM -->
-<form class="form-container">
-    <h3>Add Employee</h3>
-    <input id="firstName" placeholder="First Name">
-    <input id="lastName" placeholder="Last Name">
-    <input id="email" placeholder="Email">
-    <button onclick="addEmployee()">Add</button>
-</form>
+    <h1>Employee Management</h1>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
 
-<!-- EMPLOYEE TABLE -->
-<h3>Employees</h3>
-<table id="employeeTable">
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>First Name</th>
-        <th>Last Name</th>
-        <th>Email</th>
-    </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th><th>First</th><th>Last</th><th>Email</th><th>Actions</th>
+        </tr>
+        </thead>
+        <tbody id="employeeTable"></tbody>
+    </table>
+</div>
 
+<!-- Modal -->
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <h2 id="modal-title">Add Employee</h2>
+        <input id="firstNameInput" class="input" placeholder="First Name">
+        <input id="lastNameInput" class="input" placeholder="Last Name">
+        <input id="emailInput" class="input" placeholder="Email">
+
+        <div class="flex">
+            <button class="btn" onclick="closeModal()">Cancel</button>
+            <button class="btn btn-primary" id="saveBtn">Save</button>
+        </div>
+    </div>
+</div>
+
+<script src="/js/theme.js"></script>
 <script>
     const API = "/api/employees";
+    let editId = null;
 
-    // LOAD EMPLOYEES ON PAGE LOAD
+    // Load employees
     window.onload = loadEmployees;
 
     function loadEmployees() {
         fetch(API)
             .then(res => res.json())
             .then(data => {
-                const table = document.querySelector("#employeeTable tbody");
+                const table = document.getElementById("employeeTable");
                 table.innerHTML = "";
                 data.forEach(emp => {
                     table.innerHTML += `
-                        <tr>
-                            <td>${emp.id}</td>
-                            <td><input value="${emp.firstName}" id="firstName-${emp.id}"></td>
-                            <td><input value="${emp.lastName}" id="lastName-${emp.id}"></td>
-                            <td><input value="${emp.email}" id="email-${emp.id}"></td>
-                            <td>
-                                <button onclick="updateEmployee(${emp.id})">Update</button>
-                                <button onclick="deleteEmployee(${emp.id})">Delete</button>
-                            </td>
-                        </tr>
+                    <tr>
+                        <td data-label="ID">${emp.id}</td>
+                        <td data-label="First">${emp.firstName}</td>
+                        <td data-label="Last">${emp.lastName}</td>
+                        <td data-label="Email">${emp.email}</td>
+                        <td data-label="Actions">
+                            <button class="btn btn-primary" onclick="openEditModal(${emp.id}, '${emp.firstName}', '${emp.lastName}', '${emp.email}')">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteEmployee(${emp.id})">Delete</button>
+                        </td>
+                    </tr>
                     `;
                 });
-            })
-            .catch(err => console.error("Error loading employees:", err));
+            });
+    }
+
+    function openAddModal() {
+        editId = null;
+        document.getElementById("modal-title").textContent = "Add Employee";
+        document.getElementById("firstNameInput").value = "";
+        document.getElementById("lastNameInput").value = "";
+        document.getElementById("emailInput").value = "";
+        document.getElementById("saveBtn").onclick = addEmployee;
+        document.getElementById("modal").style.display = "flex";
+    }
+
+    function openEditModal(id, fn, ln, em) {
+        editId = id;
+        document.getElementById("modal-title").textContent = "Edit Employee";
+        document.getElementById("firstNameInput").value = fn;
+        document.getElementById("lastNameInput").value = ln;
+        document.getElementById("emailInput").value = em;
+        document.getElementById("saveBtn").onclick = updateEmployee;
+        document.getElementById("modal").style.display = "flex";
+    }
+
+    function closeModal() {
+        document.getElementById("modal").style.display = "none";
     }
 
     function addEmployee() {
-        const firstName = document.getElementById("firstName").value;
-        const lastName = document.getElementById("lastName").value;
-        const email = document.getElementById("email").value;
+        const firstName = document.getElementById("firstNameInput").value;
+        const lastName = document.getElementById("lastNameInput").value;
+        const email = document.getElementById("emailInput").value;
 
         fetch(API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ firstName, lastName, email })
-        })
-        .then(() => loadEmployees());
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({firstName, lastName, email})
+        }).then(() => {
+            closeModal();
+            loadEmployees();
+        });
     }
 
-    function updateEmployee(id) {
-        const firstName = document.getElementById(`firstName-${id}`).value;
-        const lastName = document.getElementById(`lastName-${id}`).value;
-        const email = document.getElementById(`email-${id}`).value;
+    function updateEmployee() {
+        const firstName = document.getElementById("firstNameInput").value;
+        const lastName = document.getElementById("lastNameInput").value;
+        const email = document.getElementById("emailInput").value;
 
-        fetch(`${API}/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ firstName, lastName, email })
-        })
-        .then(() => loadEmployees());
+        fetch(`${API}/${editId}`, {
+            method:"PUT",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({firstName, lastName, email})
+        }).then(() => {
+            closeModal();
+            loadEmployees();
+        });
     }
 
     function deleteEmployee(id) {
-        fetch(`${API}/${id}`, { method: "DELETE" })
+        fetch(`${API}/${id}`, { method:"DELETE" })
             .then(() => loadEmployees());
+    }
+
+    function toggleDarkMode() {
+        document.body.classList.toggle("dark");
     }
 </script>
 
 </body>
 </html>
+
